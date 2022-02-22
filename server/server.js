@@ -31,7 +31,7 @@ const PORT = 5000
 
 app.use('/uploads', express.static('uploads'))
 
-app.post('/upload', upload.single('imageTest'), (req, res) => {
+app.post('/upload', upload.single('image'), (req, res) => {
   console.log(req.file)
   res.send(req.file)
 })
