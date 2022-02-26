@@ -14,15 +14,62 @@ userRouter.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10)
 
-    console.log({ hashedPassword })
-    await new User({
+    const user = await new User({
       name: req.body.name,
       username: req.body.username,
       hashedPassword: hashedPassword,
+      sessions: [{ createdAt: new Date() }],
     }).save()
 
-    res.json({ message: 'user register !!' })
+    const session = user.sessions[0]
+
+    res.json({
+      message: 'user register !!',
+      sessionId: session._id,
+      name: user.name,
+    })
   } catch (err) {
+    res.status(400).json({ message: err.message })
+  }
+})
+
+userRouter.post('/login', async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.body.username })
+    const isValid = await bcrypt.compare(req.body.password, user.hashedPassword)
+
+    if (!isValid) throw new Error('입력하신 정보가 올바르지 않습니다. !!')
+
+    // Session 로그인
+    user.sessions.push({ createdAt: new Date() })
+    await user.save()
+    const session = user.sessions[user.sessions.length - 1]
+
+    res.json({
+      message: 'user validated !!',
+      sessionId: session._id,
+      name: user.name,
+    })
+  } catch (err) {
+    res.status(400).json({ message: err.message })
+  }
+})
+
+userRouter.post('/logout', async (req, res) => {
+  try {
+    console.log(req.user)
+    if (!req.user) throw new Error('invalid sessionid !!')
+
+    await User.updateOne(
+      { _id: req.user.id },
+      { $pull: { sessions: { _id: req.headers.sessionid } } }
+    )
+
+    console.log(req.user)
+
+    res.json({ message: 'user is logged out' })
+  } catch (err) {
+    console.log(err)
     res.status(400).json({ message: err.message })
   }
 })

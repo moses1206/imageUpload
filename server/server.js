@@ -1,6 +1,7 @@
 import express from 'express'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
+import { authenticate } from './middleware/authentication.js'
 
 import imageRouter from './routes/imageRouter.js'
 import userRouter from './routes/userRouter.js'
@@ -16,8 +17,9 @@ mongoose
   .then(() => {
     console.log('MongoDB Connected !!')
 
-    // Can read req Json
+    // Middleware
     app.use(express.json())
+    app.use(authenticate)
 
     // Router
     app.use('/uploads', express.static('uploads'))
