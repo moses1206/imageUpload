@@ -3,6 +3,7 @@ const userRouter = Router()
 
 import { User } from '../models/User.js'
 import bcrypt from 'bcryptjs'
+import { Image } from '../models/Image.js'
 
 userRouter.post('/register', async (req, res) => {
   try {
@@ -27,6 +28,7 @@ userRouter.post('/register', async (req, res) => {
       message: 'user register !!',
       sessionId: session._id,
       name: user.name,
+      userId: user._id,
     })
   } catch (err) {
     res.status(400).json({ message: err.message })
@@ -36,6 +38,9 @@ userRouter.post('/register', async (req, res) => {
 userRouter.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.username })
+
+    if (!user) throw new Error('가입되지 않은 아이디 입니다. !!')
+
     const isValid = await bcrypt.compare(req.body.password, user.hashedPassword)
 
     if (!isValid) throw new Error('입력하신 정보가 올바르지 않습니다. !!')
@@ -49,6 +54,7 @@ userRouter.post('/login', async (req, res) => {
       message: 'user validated !!',
       sessionId: session._id,
       name: user.name,
+      userId: user._id,
     })
   } catch (err) {
     res.status(400).json({ message: err.message })
@@ -57,7 +63,6 @@ userRouter.post('/login', async (req, res) => {
 
 userRouter.post('/logout', async (req, res) => {
   try {
-    console.log(req.user)
     if (!req.user) throw new Error('invalid sessionid !!')
 
     await User.updateOne(
@@ -70,6 +75,34 @@ userRouter.post('/logout', async (req, res) => {
     res.json({ message: 'user is logged out' })
   } catch (err) {
     console.log(err)
+    res.status(400).json({ message: err.message })
+  }
+})
+
+userRouter.get('/me', (req, res) => {
+  try {
+    if (!req.user) throw new Error('권한이 없습니다. !!')
+
+    res.json({
+      message: 'success !!',
+      sessionId: req.headers.sessionid,
+      name: req.user.name,
+      userId: req.user._id,
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(400).json({ message: err.message })
+  }
+})
+
+userRouter.get('/me/images', async (req, res) => {
+  // 본인의 사진들만 리턴(public === false)
+  try {
+    if (!req.user) throw new Error('권한이 없습니다. !!')
+    const images = await Image.find({ 'user._id': req.user.id })
+    res.json(images)
+  } catch (err) {
+    console.error(err)
     res.status(400).json({ message: err.message })
   }
 })

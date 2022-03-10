@@ -5,6 +5,7 @@ import MainPage from './pages/MainPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import Navigation from './components/Navigation'
+import ImagePage from './pages/ImagePage'
 
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 
@@ -15,6 +16,7 @@ function App() {
         <Navigation />
         <ToastContainer />
         <Routes>
+          <Route path='/images/:imageId' element={<ImagePage />} />
           <Route path='/' element={<MainPage />} />
           <Route path='/auth/register' element={<RegisterPage />} />
           <Route path='/auth/login' element={<LoginPage />} />
