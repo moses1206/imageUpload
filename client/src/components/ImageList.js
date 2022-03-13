@@ -1,4 +1,5 @@
 import React, { useContext } from 'react'
+import { Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { ImageContext } from '../context/ImageContext'
 import './ImageList.css'
@@ -7,12 +8,10 @@ export default function ImageList() {
   const { images, myImages, isPublic, setIsPublic } = useContext(ImageContext)
   const [me] = useContext(AuthContext)
 
-  const imgList = (isPublic ? images : myImages).map((img) => (
-    <img
-      alt=''
-      key={img.key}
-      src={`http://localhost:5000/uploads/${img.key}`}
-    />
+  const imgList = (isPublic ? images : myImages).map((image) => (
+    <Link to={`/images/${image._id}`} key={image.key}>
+      <img alt='' src={`http://localhost:5000/uploads/${image.key}`} />
+    </Link>
   ))
 
   return (
