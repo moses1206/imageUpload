@@ -26,6 +26,8 @@ export default function UploadForm() {
     fileReader.readAsDataURL(imageFile)
     fileReader.onload = (e) => setImgSrc(e.target.result)
   }
+  console.log(file)
+  console.log(imgSrc)
 
   const onSubmit = async (e) => {
     e.preventDefault()
