@@ -38,9 +38,32 @@ imageRouter.post('/', upload.array('image', 5), async (req, res) => {
 })
 
 imageRouter.get('/', async (req, res) => {
-  // public 이미지만 제공
-  const images = await Image.find({ public: true })
-  return res.json(images)
+  try {
+    console.log(req.query)
+    const { lastid } = req.query
+    if (lastid && !mongoose.isValidObjectId(lastid))
+      throw new Error('invalid lastid')
+    // offset vs curser
+    // offset : ex> skip(2).limit(2)  데이터를 중간에 삽입 삭제했을때 순서가 꼬이는 단점.
+    // curser : 마지막 아이디를 찾고 그것보다 큰것(gt)을 가져와라.
+
+    const images = await Image.find(
+      lastid
+        ? {
+            public: true,
+            _id: { $lt: lastid },
+          }
+        : { public: true }
+    )
+
+      // 최신순으로 이미지 올리기
+      .sort({ _id: -1 })
+      .limit(8)
+    return res.json(images)
+  } catch (err) {
+    console.error(err)
+    res.status(400).json({ message: err.message })
+  }
 })
 
 imageRouter.delete('/:imageId', async (req, res) => {
