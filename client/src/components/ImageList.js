@@ -5,10 +5,6 @@ import { ImageContext } from '../context/ImageContext'
 import './ImageList.css'
 
 export default function ImageList() {
-<<<<<<< HEAD
-  const { images, myImages, isPublic, setIsPublic, loadMoreImages } =
-    useContext(ImageContext)
-=======
   const {
     images,
     myImages,
@@ -18,7 +14,6 @@ export default function ImageList() {
     imageLoading,
     imageError,
   } = useContext(ImageContext)
->>>>>>> 158899b15ab6120ed1a903cbed886019b838e42f
   const [me] = useContext(AuthContext)
 
   const elementRef = useRef(null)
@@ -72,12 +67,9 @@ export default function ImageList() {
       )}
 
       <div className='image-list-container'>{imgList}</div>
-<<<<<<< HEAD
       <button onClick={loadMoreImages}>LoadMore Images</button>
-=======
       {imageError && <div>Image Loading Error ...</div>}
       {imageLoading && <div>Image Loading ...</div>}
->>>>>>> 158899b15ab6120ed1a903cbed886019b838e42f
     </div>
   )
 }
