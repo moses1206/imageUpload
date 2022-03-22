@@ -8,12 +8,9 @@ import { ImageContext } from '../context/ImageContext'
 import './UploadForm.css'
 
 export default function UploadForm() {
-  const { images, setImages, myImages, setMyImages } = useContext(ImageContext)
-
+  const { setImages, setMyImages } = useContext(ImageContext)
   const [files, setFiles] = useState(null)
-
   const [previews, setPreviews] = useState([])
-
   const [percent, setPercent] = useState(0)
   const [isPublic, setIsPublic] = useState(true)
 
@@ -41,7 +38,6 @@ export default function UploadForm() {
       })
     )
 
-    console.log(imagePreviews)
     setPreviews(imagePreviews)
   }
 
@@ -60,12 +56,10 @@ export default function UploadForm() {
         },
       })
 
-      if (
-        isPublic
-          ? setImages([...images, ...res.data])
-          : setMyImages([...myImages, ...res.data])
-      )
-        toast.success('이미지 업로드 성공!!')
+      if (isPublic) setImages((prevData) => [...res.data, ...prevData])
+      setMyImages((prevData) => [...res.data, ...prevData])
+
+      toast.success('이미지 업로드 성공!!')
       setTimeout(() => {
         setPercent(0)
         setPreviews([])

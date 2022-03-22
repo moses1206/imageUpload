@@ -8,16 +8,14 @@ import { useNavigate } from 'react-router-dom'
 
 export default function ImagePage() {
   const { imageId } = useParams()
-  const { images, setImages, myImages, setMyImages } = useContext(ImageContext)
+  const { images, setImages, setMyImages } = useContext(ImageContext)
   const [me] = useContext(AuthContext)
 
   const [hasLiked, setHasLiked] = useState(false)
 
   const navigate = useNavigate()
 
-  const image =
-    images.find((image) => image._id === imageId) ||
-    myImages.find((image) => image._id === imageId)
+  const image = images.find((image) => image._id === imageId)
 
   useEffect(() => {
     if (me && image && image.likes.includes(me.userId)) {
@@ -39,9 +37,8 @@ export default function ImagePage() {
     )
 
     if (result.data.public) {
-      setImages(updataImage(images, result.data))
-    } else {
-      setMyImages(updataImage(myImages, result.data))
+      setImages(updataImage((prevData) => prevData, result.data))
+      setMyImages(updataImage((prevData) => prevData, result.data))
     }
 
     setHasLiked(!hasLiked)
@@ -51,8 +48,10 @@ export default function ImagePage() {
     try {
       if (!window.confirm('정말 이미지를 삭제하시겠습니까?')) return
       const result = await axios.delete(`/images/${imageId}`)
-      setImages(images.filter((image) => image._id !== imageId))
-      setMyImages(myImages.filter((image) => image._id !== imageId))
+      setImages((prevData) => prevData.filter((image) => image._id !== imageId))
+      setMyImages((prevData) =>
+        prevData.filter((image) => image._id !== imageId)
+      )
       navigate('/')
       toast.success(result.data.message)
     } catch (err) {

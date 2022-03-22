@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from 'react'
+import React, { useContext, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { ImageContext } from '../context/ImageContext'
@@ -7,16 +7,24 @@ import './ImageList.css'
 export default function ImageList() {
   const {
     images,
-    myImages,
     isPublic,
     setIsPublic,
-    loadMoreImages,
     imageLoading,
     imageError,
+    setImageUrl,
   } = useContext(ImageContext)
-  const [me] = useContext(AuthContext)
 
+  const [me] = useContext(AuthContext)
   const elementRef = useRef(null)
+
+  // useCallback은 계속 리랜더링 되는 컴포넌트를 특정조건에만
+  // 리랜더링 되도록 조건을 주어 지속적인 리랜더링을 막아서
+  //  퍼포먼스를 개선한다.
+  const loadMoreImages = useCallback(() => {
+    if (images.length === 0 || imageLoading) return
+    const lastImageId = images[images.length - 1]._id
+    setImageUrl(`${isPublic ? '' : '/users/me'}/images?lastid=${lastImageId}`)
+  }, [images, imageLoading, isPublic, setImageUrl])
 
   useEffect(() => {
     if (!elementRef.current) return
@@ -34,26 +42,15 @@ export default function ImageList() {
     return () => observer.disconnect()
   }, [loadMoreImages])
 
-  const imgList = isPublic
-    ? images.map((image, index) => (
-        <Link
-          to={`/images/${image._id}`}
-          key={image.key}
-          ref={index + 1 === images.length ? elementRef : null}
-        >
-          <img alt='' src={`http://localhost:5000/uploads/${image.key}`} />
-        </Link>
-      ))
-    : myImages.map((image, index) => (
-        <Link
-          to={`/images/${image._id}`}
-          key={image.key}
-          // 끝에서 3번째 이미지가 나올때 불러오도록 설정
-          ref={index + 3 === myImages.length ? elementRef : null}
-        >
-          <img alt='' src={`http://localhost:5000/uploads/${image.key}`} />
-        </Link>
-      ))
+  const imgList = images.map((image, index) => (
+    <Link
+      to={`/images/${image._id}`}
+      key={image.key}
+      ref={index + 4 === images.length ? elementRef : null}
+    >
+      <img alt='' src={`http://localhost:5000/uploads/${image.key}`} />
+    </Link>
+  ))
 
   return (
     <div>
@@ -67,7 +64,6 @@ export default function ImageList() {
       )}
 
       <div className='image-list-container'>{imgList}</div>
-      <button onClick={loadMoreImages}>LoadMore Images</button>
       {imageError && <div>Image Loading Error ...</div>}
       {imageLoading && <div>Image Loading ...</div>}
     </div>

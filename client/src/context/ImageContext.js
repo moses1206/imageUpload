@@ -3,7 +3,7 @@ import React, {
   useState,
   useEffect,
   useContext,
-  useCallback,
+  useRef,
 } from 'react'
 import axios from 'axios'
 import { AuthContext } from './AuthContext'
@@ -17,21 +17,30 @@ export const ImageProvider = (prop) => {
   const [imageUrl, setImageUrl] = useState('/images')
   const [imageLoading, setImageLoading] = useState(false)
   const [imageError, setimageError] = useState(false)
-
   const [me] = useContext(AuthContext)
+  const pastImageUrlRef = useRef()
 
   useEffect(() => {
+    if (pastImageUrlRef.current === imageUrl) return
     setImageLoading(true)
     axios
       .get(imageUrl)
-      .then((result) => setImages((prevData) => [...prevData, ...result.data]))
+      .then((result) =>
+        // result값이 isPublic 유무에 따라 어디에 저장할지를 정해준다.
+        isPublic
+          ? setImages((prevData) => [...prevData, ...result.data])
+          : setMyImages((prevData) => [...prevData, ...result.data])
+      )
       .catch((err) => console.error(err))
       .catch((err) => {
         console.error(err)
         setimageError(true)
       })
-      .finally(() => setImageLoading(false))
-  }, [imageUrl])
+      .finally(() => {
+        setImageLoading(false)
+        pastImageUrlRef.current = imageUrl
+      })
+  }, [imageUrl, isPublic])
 
   useEffect(() => {
     if (me) {
@@ -49,27 +58,15 @@ export const ImageProvider = (prop) => {
     }
   }, [me])
 
-  // 처음에는 라스트 아이디가 없으므로 null값 처리를 해준다.
-  const lastImageId = images.length > 0 ? images[images.length - 1]._id : null
-
-  // useCallback은 계속 리랜더링 되는 컴포넌트를 특정조건에만
-  // 리랜더링 되도록 조건을 주어 지속적인 리랜더링을 막아서
-  //  퍼포먼스를 개선한다.
-  const loadMoreImages = useCallback(() => {
-    if (imageLoading || !lastImageId) return
-    setImageUrl(`/images?lastid=${lastImageId}`)
-  }, [lastImageId, imageLoading])
-
   return (
     <ImageContext.Provider
       value={{
-        images,
+        images: isPublic ? images : myImages,
         setImages,
-        myImages,
         setMyImages,
+        setImageUrl,
         isPublic,
         setIsPublic,
-        loadMoreImages,
         imageLoading,
         imageError,
       }}
