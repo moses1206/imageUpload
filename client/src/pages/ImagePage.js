@@ -10,36 +10,51 @@ export default function ImagePage() {
   const { imageId } = useParams()
   const { images, setImages, setMyImages } = useContext(ImageContext)
   const [me] = useContext(AuthContext)
-
   const [hasLiked, setHasLiked] = useState(false)
-
+  const [image, setImage] = useState()
   const navigate = useNavigate()
 
-  const image = images.find((image) => image._id === imageId)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (me && image && image.likes.includes(me.userId)) {
-      setHasLiked(true)
-    }
+    const img = images.find((image) => image._id === imageId)
+    if (img) setImage(img)
+  }, [images, imageId])
+
+  useEffect(() => {
+    if (image && image._id === imageId) return
+    axios
+      .get(`/images/${imageId}`)
+      .then(({ data }) => {
+        setImage(data)
+        setError(false)
+      })
+      .catch((err) => {
+        setError(true)
+        toast.error(err.response.data.message)
+      })
+  }, [imageId, image])
+
+  useEffect(() => {
+    if (me && image && image.likes.includes(me.userId)) setHasLiked(true)
   }, [me, image])
 
-  if (!image) return <h3>Loading...</h3>
+  if (error) return <h3>Error...</h3>
+  else if (!image) return <h3>Loading...</h3>
 
-  const updataImage = (images, image) =>
-    [...images.filter((image) => image._id !== imageId), image].sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    )
+  const updateImage = (images, image) =>
+    [...images.filter((image) => image._id !== imageId), image].sort((a, b) => {
+      if (a._id < b._id) return 1
+      else return -1
+    })
 
   const onSubmit = async () => {
     const result = await axios.patch(
       `/images/${imageId}/${hasLiked ? 'unlike' : 'like'}`
     )
-
-    if (result.data.public) {
-      setImages(updataImage((prevData) => prevData, result.data))
-      setMyImages(updataImage((prevData) => prevData, result.data))
-    }
+    if (result.data.public)
+      setImages((prevData) => updateImage(prevData, result.data))
+    setMyImages((prevData) => updateImage(prevData, result.data))
 
     setHasLiked(!hasLiked)
   }
@@ -68,19 +83,17 @@ export default function ImagePage() {
         src={`http://localhost:5000/uploads/${image.key}`}
       />
       <span>좋아요 {image.likes.length}</span>
+      {me && image.user._id === me.userId && (
+        <button
+          style={{ float: 'right', marginLeft: 10 }}
+          onClick={onDeleteHander}
+        >
+          삭제
+        </button>
+      )}
       <button style={{ float: 'right' }} onClick={onSubmit}>
         {hasLiked ? '좋아요 취소' : '좋아요'}
       </button>
-
-      {/* 유저가 로그인이 되어있고 이미지 작성 유저가 로그인 유저와 같을때 */}
-      {me && image.user._id === me.userId ? (
-        <button
-          style={{ float: 'right', marginRight: '10px' }}
-          onClick={onDeleteHander}
-        >
-          삭제하기
-        </button>
-      ) : null}
     </div>
   )
 }

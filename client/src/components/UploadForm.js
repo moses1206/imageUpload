@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useRef } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 
@@ -13,6 +13,7 @@ export default function UploadForm() {
   const [previews, setPreviews] = useState([])
   const [percent, setPercent] = useState(0)
   const [isPublic, setIsPublic] = useState(true)
+  const inputRef = useRef()
 
   const imageSelectHandler = async (e) => {
     const imageFiles = e.target.files
@@ -63,11 +64,16 @@ export default function UploadForm() {
       setTimeout(() => {
         setPercent(0)
         setPreviews([])
+        // 동일한 이미지를 다시 올릴때 입력값의 변화가 없어서
+        // onChange가 발동되지 않음.
+        // inputRef를 사용하여 input 태그를 초기화 해줌.
+        inputRef.current.value = null
       }, 1000)
     } catch (err) {
       toast.error(err.response.data.message)
       setPercent(0)
       setPreviews([])
+      inputRef.current.value = null
       console.log(err)
     }
   }
@@ -97,6 +103,7 @@ export default function UploadForm() {
       <div className='file-dropper'>
         {fileName}
         <input
+          ref={(ref) => (inputRef.current = ref)}
           id='image'
           type='file'
           multiple={true}
