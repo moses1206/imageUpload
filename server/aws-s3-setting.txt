@@ -1,20 +1,48 @@
 D:\dev\Study\SiHoonKim\imageUpload\server>npm i aws-sdk multer-s3
 
+=======================================================
 make "aws.js" to root directory
 
-=======================================================
 import aws from 'aws-sdk'
 import dotenv from 'dotenv'
+
 dotenv.config()
 
 const { AWS_ACCESS_KEY, AWS_SECRET_KEY } = process.env
 
 const s3 = new aws.S3({
-  secretAccessKey: AWS_ACCESS_KEY,
+  secretAccessKey: AWS_SECRET_KEY,
   accessKeyId: AWS_ACCESS_KEY,
+  region: 'ap-northeast-2',
 })
 
-export { s3 }
+const getSignedUrl = ({ key }) => {
+  return new Promise((resolve, reject) => {
+    s3.createPresignedPost(
+      {
+        Bucket: 'samyang-bucket',
+        Fields: {
+          key: key,
+        },
+        // preSignedUrl의 유효기간을 설정
+        Expires: 300, //300초
+        // 50MB 제한
+        Conditions: [
+          ['content-length-range', 0, 50 * 1024 * 1024],
+          // 모든 이미지는 다 허용
+          ['starts-with', '$Content-Type', 'image/'],
+        ],
+      },
+      (err, data) => {
+        if (err) reject(err)
+        resolve(data)
+      }
+    )
+  })
+}
+
+export { s3, getSignedUrl }
+
 ========================================================
 
 imageUpload.js
@@ -76,11 +104,70 @@ imageRouter.post('/presigned', async (req, res) => {
 })
 
 
+===================================================================================
+Frontend
 
+uploadForm.js
 
+const onSubmitV2 = async (e) => {
+  e.preventDefault()
+  try {
+    const presignedData = await axios.post('/images/presigned', {
+      // files가 배열이 아니라서 [...files]로 배열로 변환함.
+      contentTypes: [...files].map((file) => file.type),
+    })
 
+    console.log(presignedData)
 
+    const result = await Promise.all(
+      [...files].map((file, index) => {
+        const { presigned } = presignedData.data[index]
+        const formData = new FormData()
+        for (const key in presigned.fields) {
+          formData.append(key, presigned.fields[key])
+        }
+        formData.append('Content-Type', file.type)
+        formData.append('file', file)
+        const result = axios.post(presigned.url, formData)
+        return result
+      })
+    )
 
+    console.log(result)
+
+    toast.success('이미지 업로드 성공!!')
+    setTimeout(() => {
+      setPercent(0)
+      setPreviews([])
+      // 동일한 이미지를 다시 올릴때 입력값의 변화가 없어서
+      // onChange가 발동되지 않음.
+      // inputRef를 사용하여 input 태그를 초기화 해줌.
+      inputRef.current.value = null
+    }, 1000)
+  } catch (err) {
+    console.log(err)
+    toast.error(err.response.data.message)
+    setPercent(0)
+    setPreviews([])
+  }
+}
+
+=============================================================================
+samyang-buck / 권한설정
+[
+  {
+      "AllowedHeaders": [
+          "*"
+      ],
+      "AllowedMethods": [
+          "POST"
+      ],
+      "AllowedOrigins": [
+          "http://localhost:3000"
+      ],
+      "ExposeHeaders": []
+  }
+]
 
 
 

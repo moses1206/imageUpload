@@ -59,7 +59,7 @@ export default function UploadForm() {
           for (const key in presigned.fields) {
             formData.append(key, presigned.fields[key])
           }
-
+          formData.append('Content-Type', file.type)
           formData.append('file', file)
           const result = axios.post(presigned.url, formData)
           return result
