@@ -42,6 +42,49 @@ export default function UploadForm() {
     setPreviews(imagePreviews)
   }
 
+  const onSubmitV2 = async (e) => {
+    e.preventDefault()
+    try {
+      const presignedData = await axios.post('/images/presigned', {
+        // files가 배열이 아니라서 [...files]로 배열로 변환함.
+        contentTypes: [...files].map((file) => file.type),
+      })
+
+      console.log(presignedData)
+
+      const result = await Promise.all(
+        [...files].map((file, index) => {
+          const { presigned } = presignedData.data[index]
+          const formData = new FormData()
+          for (const key in presigned.fields) {
+            formData.append(key, presigned.fields[key])
+          }
+
+          formData.append('file', file)
+          const result = axios.post(presigned.url, formData)
+          return result
+        })
+      )
+
+      console.log(result)
+
+      toast.success('이미지 업로드 성공!!')
+      setTimeout(() => {
+        setPercent(0)
+        setPreviews([])
+        // 동일한 이미지를 다시 올릴때 입력값의 변화가 없어서
+        // onChange가 발동되지 않음.
+        // inputRef를 사용하여 input 태그를 초기화 해줌.
+        inputRef.current.value = null
+      }, 1000)
+    } catch (err) {
+      console.log(err)
+      toast.error(err.response.data.message)
+      setPercent(0)
+      setPreviews([])
+    }
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData()
@@ -70,11 +113,11 @@ export default function UploadForm() {
         inputRef.current.value = null
       }, 1000)
     } catch (err) {
+      console.log(err)
       toast.error(err.response.data.message)
       setPercent(0)
       setPreviews([])
       inputRef.current.value = null
-      console.log(err)
     }
   }
 
@@ -97,7 +140,7 @@ export default function UploadForm() {
         )
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmitV2}>
       <div style={{ display: 'flex', flexWrap: 'wrap' }}>{previewImages}</div>
       <ProgressBar percent={percent} />
       <div className='file-dropper'>

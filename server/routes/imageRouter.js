@@ -6,10 +6,34 @@ import { upload } from '../middleware/ImageUpload.js'
 import fs from 'fs'
 import { promisify } from 'util'
 import mongoose from 'mongoose'
-import { s3 } from '../aws.js'
+import { s3, getSignedUrl } from '../aws.js'
+import { v4 as uuid } from 'uuid'
+import mime from 'mime-types'
 
 // unlink를 프로미스를 리턴하도록 해준다.
-const fileUnlink = promisify(fs.unlink)
+// const fileUnlink = promisify(fs.unlink)
+
+imageRouter.post('/presigned', async (req, res) => {
+  try {
+    if (!req.user) throw new Error('권한이 없습니다. !!')
+
+    // Type이 Array 인지 확인
+    const { contentTypes } = req.body
+    if (!Array.isArray(contentTypes)) throw new Error('invalid contentTypes')
+    const presignedData = await Promise.all(
+      contentTypes.map(async (contentTypes) => {
+        const imageKey = `${uuid()}.${mime.extension(contentTypes)}`
+        const key = `raw/${imageKey}`
+        const presigned = await getSignedUrl({ key })
+        return { imageKey, presigned }
+      })
+    )
+    return res.json(presignedData)
+  } catch (err) {
+    console.error(err)
+    return res.status(400).json({ message: err.message })
+  }
+})
 
 imageRouter.post('/', upload.array('image', 5), async (req, res) => {
   // 유저정보 , public 유무

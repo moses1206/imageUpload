@@ -43,14 +43,37 @@ img 의 src의 주소를 변경
 />
 
 ============================================================
-Presigned Url !!
-클라이언트에서 S3로 바로 이미지 업로드 가능
-서버를 거치지 않으므로 빠른 퍼포먼스..
+PresignedUrl !!
+클라이언트에서 S3 Bucket으로 바로 이미지 업로드 가능
+문제는 아무나 업로드 할 수 있게 된다. 
 권한이 부여된 upload Url = Presigned Url
+서버를 거치지 않으므로 빠른 퍼포먼스..
 
+Backend에서 AWS_S3에 접속해서 PresignedUrl을 만들고 클라이언트에 전달해주면
+클라인언트가 PresignedUrl을 사용하고 바로 S3에 업로드하게 된다.
 
+imageRouter.post('/presigned', async (req, res) => {
+  try {
+    if (!req.user) throw new Error('권한이 없습니다. !!')
 
-
+    // Type이 Array 인지 확인
+    const { contentTypes } = req.body
+    if (!Array.isArray(contentTypes)) throw new Error('invalid contentTypes')
+    const presignedData = await Promise.all(
+      contentTypes.map(async (contentTypes) => {
+        # 파일명은 다른 방식으로 변경할것
+        const imageKey = `${uuid()}.${mime.extension(contentTypes)}`
+        const key = `raw/${imageKey}`
+        const presigned = await getSignedUrl({ key })
+        return { imageKey, presigned }
+      })
+    )
+    return presignedData
+  } catch (err) {
+    console.error(err)
+    return res.status(400).json({ message: err.message })
+  }
+})
 
 
 

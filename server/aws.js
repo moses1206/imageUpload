@@ -10,4 +10,29 @@ const s3 = new aws.S3({
   accessKeyId: AWS_ACCESS_KEY,
 })
 
-export { s3 }
+const getSignedUrl = ({ key }) => {
+  return new Promise((resolve, reject) => {
+    s3.createPresignedPost(
+      {
+        Bucket: 'samyang-bucket',
+        Fields: {
+          key: key,
+        },
+        // preSignedUrl의 유효기간을 설정
+        Expires: 300, //300초
+        // 50MB 제한
+        Conditions: [
+          ['content-length-range', 0, 50 * 1024 * 1024],
+          // 모든 이미지는 다 허용
+          ['starts-with', '$Content-Type', 'image/'],
+        ],
+      },
+      (err, data) => {
+        if (err) reject(err)
+        resolve(data)
+      }
+    )
+  })
+}
+
+export { s3, getSignedUrl }
