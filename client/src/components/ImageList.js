@@ -48,7 +48,10 @@ export default function ImageList() {
       key={image.key}
       ref={index + 4 === images.length ? elementRef : null}
     >
-      <img alt='' src={`http://localhost:5000/uploads/${image.key}`} />
+      <img
+        alt=''
+        src={`https://samyang-bucket.s3.ap-northeast-2.amazonaws.com/raw/${image.key}`}
+      />
     </Link>
   ))
 

@@ -6,6 +6,7 @@ import { upload } from '../middleware/ImageUpload.js'
 import fs from 'fs'
 import { promisify } from 'util'
 import mongoose from 'mongoose'
+import { s3 } from '../aws.js'
 
 // unlink를 프로미스를 리턴하도록 해준다.
 const fileUnlink = promisify(fs.unlink)
@@ -24,7 +25,8 @@ imageRouter.post('/', upload.array('image', 5), async (req, res) => {
             username: req.user.username,
           },
           public: req.body.public,
-          key: file.filename,
+          // aws에서 리턴되는 "aws/abc.jpg"에서 "aws/" 를 제거
+          key: file.key.replace('raw/', ''),
           originalFileName: file.originalname,
         }).save()
         return image
@@ -92,7 +94,13 @@ imageRouter.delete('/:imageId', async (req, res) => {
     const image = await Image.findOneAndDelete({ _id: req.params.imageId })
     if (!image) return res.json({ message: '이미지를 찾을 수 없습니다. !!' })
     // uploads 폴더 이미지 삭제
-    await fileUnlink(`./uploads/${image.key}`)
+    // await fileUnlink(`./uploads/${image.key}`)
+    s3.deleteObject(
+      { Bucket: 'samyang-bucket', Key: `raw/${image.key}` },
+      (error, data) => {
+        if (error) throw error
+      }
+    )
 
     return res.json({ image: image, message: '이미지가 삭제되었습니다. !' })
 

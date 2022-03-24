@@ -1,11 +1,21 @@
 import multer from 'multer'
 import { v4 as uuid } from 'uuid'
 import mime from 'mime-types'
+import multerS3 from 'multer-s3'
+import { s3 } from '../aws.js'
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, './uploads'),
-  filename: (req, file, cb) =>
-    cb(null, `${uuid()}.${mime.extension(file.mimetype)}`),
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => cb(null, './uploads'),
+//   filename: (req, file, cb) =>
+//     cb(null, `${uuid()}.${mime.extension(file.mimetype)}`),
+// })
+
+const storage = multerS3({
+  s3,
+  bucket: 'samyang-bucket',
+  key: (req, file, cb) => {
+    cb(null, `raw/${uuid()}.${mime.extension(file.mimetype)}`)
+  },
 })
 
 const upload = multer({

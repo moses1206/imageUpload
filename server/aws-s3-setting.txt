@@ -1,0 +1,71 @@
+D:\dev\Study\SiHoonKim\imageUpload\server>npm i aws-sdk multer-s3
+
+make "aws.js" to root directory
+
+=======================================================
+import aws from 'aws-sdk'
+import dotenv from 'dotenv'
+dotenv.config()
+
+const { AWS_ACCESS_KEY, AWS_SECRET_KEY } = process.env
+
+const s3 = new aws.S3({
+  secretAccessKey: AWS_ACCESS_KEY,
+  accessKeyId: AWS_ACCESS_KEY,
+})
+
+export { s3 }
+========================================================
+
+imageUpload.js
+
+import multerS3 from 'multer-s3'
+import { s3 } from '../aws'
+
+const storage = multerS3({
+  s3: s3,
+  bucket: 'samyang-bucket',
+  key: (req, file, cb) => {
+    cb(null, `raw/${uuid()}.${mime.extension(file.mimetype)}`)
+  },
+})
+
+==========================================================
+imageRouter   Post
+
+// aws에서 리턴되는 "aws/abc.jpg"에서 "aws/" 를 제거
+key: file.key.replace('raw/', ''),
+==========================================================
+img 의 src의 주소를 변경
+<img
+  alt=''
+  src={`https://samyang-bucket.s3.ap-northeast-2.amazonaws.com/raw/${image.key}`}
+/>
+
+============================================================
+Presigned Url !!
+클라이언트에서 S3로 바로 이미지 업로드 가능
+서버를 거치지 않으므로 빠른 퍼포먼스..
+권한이 부여된 upload Url = Presigned Url
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
