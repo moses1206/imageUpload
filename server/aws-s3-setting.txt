@@ -169,13 +169,107 @@ samyang-buck / 권한설정
   }
 ]
 
+=================================================================================
 
+데이터를 DB에 저장
 
+imageRouter.post('/', upload.array('image', 30), async (req, res) => {
+  // 유저정보 , public 유무
+  try {
+    if (!req.user) throw new Error('권한이 없습니다. !!')
+    const { images, public2 } = req.body
 
+    const imageDocs = await Promise.all(
+      images.map((image) =>
+        new Image({
+          user: {
+            _id: req.user.id,
+            name: req.user.name,
+            username: req.user.username,
+          },
+          public: public2,
+          key: image.imageKey,
+          originalFileName: image.originalname,
+        }).save()
+      )
+    )
 
+    res.json(imageDocs)
+  } catch (err) {
+    console.error(err)
+    return res.status(400).json({ message: err.message })
+  }
+})
 
+==================================================================
+Frontend Upload 폼 변경
 
+const onSubmitV2 = async (e) => {
+  e.preventDefault()
+  try {
+    // preSignedUrl을 통해 이미지 파일 S3 Upload
+    const presignedData = await axios.post('/images/presigned', {
+      // files가 배열이 아니라서 [...files]로 배열로 변환함.
+      contentTypes: [...files].map((file) => file.type),
+    })
 
+    console.log(presignedData)
+
+    const result = await Promise.all(
+      [...files].map((file, index) => {
+        const { presigned } = presignedData.data[index]
+        const formData = new FormData()
+        for (const key in presigned.fields) {
+          formData.append(key, presigned.fields[key])
+        }
+        formData.append('Content-Type', file.type)
+        formData.append('file', file)
+        const result = axios.post(presigned.url, formData, {
+          onUploadProgress: (e) => {
+            setPercent((prevData) => {
+              const newData = [...prevData]
+              newData[index] = Math.round((100 * e.loaded) / e.total)
+              return newData
+            })
+          },
+        })
+        return result
+      })
+    )
+    console.log('preSignedUrl_Uplad', result)
+    console.log('...file', [...files])
+    console.log('PreSignedData', presignedData.data)
+
+    // MongoDB에 저장
+    const res = await axios.post('/images', {
+      images: [...files].map((file, index) => ({
+        imageKey: presignedData.data[index].imageKey,
+        originalname: file.name,
+      })),
+      public2: isPublic,
+    })
+
+    if (isPublic) setImages((prevData) => [...res.data, ...prevData])
+    setMyImages((prevData) => [...res.data, ...prevData])
+
+    toast.success('이미지 업로드 성공!!')
+    setTimeout(() => {
+      setPercent([])
+      setPreviews([])
+      // 동일한 이미지를 다시 올릴때 입력값의 변화가 없어서
+      // onChange가 발동되지 않음.
+      // inputRef를 사용하여 input 태그를 초기화 해줌.
+      inputRef.current.value = null
+    }, 1000)
+  } catch (err) {
+    console.log(err)
+    toast.error(err.response.data.message)
+    setPercent([])
+    setPreviews([])
+  }
+}
+
+========================================================================
 
 
 

@@ -35,33 +35,61 @@ imageRouter.post('/presigned', async (req, res) => {
   }
 })
 
-imageRouter.post('/', upload.array('image', 5), async (req, res) => {
+imageRouter.post('/', upload.array('image', 30), async (req, res) => {
   // 유저정보 , public 유무
   try {
     if (!req.user) throw new Error('권한이 없습니다. !!')
+    const { images, public2 } = req.body
 
-    const images = await Promise.all(
-      req.files.map(async (file) => {
-        const image = await new Image({
+    const imageDocs = await Promise.all(
+      images.map((image) =>
+        new Image({
           user: {
             _id: req.user.id,
             name: req.user.name,
             username: req.user.username,
           },
-          public: req.body.public,
-          // aws에서 리턴되는 "aws/abc.jpg"에서 "aws/" 를 제거
-          key: file.key.replace('raw/', ''),
-          originalFileName: file.originalname,
+          public: public2,
+          key: image.imageKey,
+          originalFileName: image.originalname,
         }).save()
-        return image
-      })
+      )
     )
-    res.json(images)
+
+    res.json(imageDocs)
   } catch (err) {
     console.error(err)
     return res.status(400).json({ message: err.message })
   }
 })
+
+// imageRouter.post('/', upload.array('image', 5), async (req, res) => {
+//   // 유저정보 , public 유무
+//   try {
+//     if (!req.user) throw new Error('권한이 없습니다. !!')
+
+//     const images = await Promise.all(
+//       req.files.map(async (file) => {
+//         const image = await new Image({
+//           user: {
+//             _id: req.user.id,
+//             name: req.user.name,
+//             username: req.user.username,
+//           },
+//           public: req.body.public,
+//           // aws에서 리턴되는 "aws/abc.jpg"에서 "aws/" 를 제거
+//           key: file.key.replace('raw/', ''),
+//           originalFileName: file.originalname,
+//         }).save()
+//         return image
+//       })
+//     )
+//     res.json(images)
+//   } catch (err) {
+//     console.error(err)
+//     return res.status(400).json({ message: err.message })
+//   }
+// })
 
 imageRouter.get('/', async (req, res) => {
   try {

@@ -11,7 +11,7 @@ export default function UploadForm() {
   const { setImages, setMyImages } = useContext(ImageContext)
   const [files, setFiles] = useState(null)
   const [previews, setPreviews] = useState([])
-  const [percent, setPercent] = useState(0)
+  const [percent, setPercent] = useState([])
   const [isPublic, setIsPublic] = useState(true)
   const inputRef = useRef()
 
@@ -45,6 +45,7 @@ export default function UploadForm() {
   const onSubmitV2 = async (e) => {
     e.preventDefault()
     try {
+      // preSignedUrl을 통해 이미지 파일 S3 Upload
       const presignedData = await axios.post('/images/presigned', {
         // files가 배열이 아니라서 [...files]로 배열로 변환함.
         contentTypes: [...files].map((file) => file.type),
@@ -61,43 +62,29 @@ export default function UploadForm() {
           }
           formData.append('Content-Type', file.type)
           formData.append('file', file)
-          const result = axios.post(presigned.url, formData)
+          const result = axios.post(presigned.url, formData, {
+            onUploadProgress: (e) => {
+              setPercent((prevData) => {
+                const newData = [...prevData]
+                newData[index] = Math.round((100 * e.loaded) / e.total)
+                return newData
+              })
+            },
+          })
           return result
         })
       )
+      console.log('preSignedUrl_Uplad', result)
+      console.log('...file', [...files])
+      console.log('PreSignedData', presignedData.data)
 
-      console.log(result)
-
-      toast.success('이미지 업로드 성공!!')
-      setTimeout(() => {
-        setPercent(0)
-        setPreviews([])
-        // 동일한 이미지를 다시 올릴때 입력값의 변화가 없어서
-        // onChange가 발동되지 않음.
-        // inputRef를 사용하여 input 태그를 초기화 해줌.
-        inputRef.current.value = null
-      }, 1000)
-    } catch (err) {
-      console.log(err)
-      toast.error(err.response.data.message)
-      setPercent(0)
-      setPreviews([])
-    }
-  }
-
-  const onSubmit = async (e) => {
-    e.preventDefault()
-    const formData = new FormData()
-
-    for (let file of files) formData.append('image', file)
-
-    formData.append('public', isPublic)
-    try {
-      const res = await axios.post('/images', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (e) => {
-          setPercent(Math.round((100 * e.loaded) / e.total))
-        },
+      // MongoDB에 저장
+      const res = await axios.post('/images', {
+        images: [...files].map((file, index) => ({
+          imageKey: presignedData.data[index].imageKey,
+          originalname: file.name,
+        })),
+        public2: isPublic,
       })
 
       if (isPublic) setImages((prevData) => [...res.data, ...prevData])
@@ -105,7 +92,7 @@ export default function UploadForm() {
 
       toast.success('이미지 업로드 성공!!')
       setTimeout(() => {
-        setPercent(0)
+        setPercent([])
         setPreviews([])
         // 동일한 이미지를 다시 올릴때 입력값의 변화가 없어서
         // onChange가 발동되지 않음.
@@ -115,20 +102,57 @@ export default function UploadForm() {
     } catch (err) {
       console.log(err)
       toast.error(err.response.data.message)
-      setPercent(0)
+      setPercent([])
       setPreviews([])
-      inputRef.current.value = null
     }
   }
 
+  // const onSubmit = async (e) => {
+  //   e.preventDefault()
+  //   const formData = new FormData()
+
+  //   for (let file of files) formData.append('image', file)
+
+  //   formData.append('public', isPublic)
+  //   try {
+  //     const res = await axios.post('/images', formData, {
+  //       headers: { 'Content-Type': 'multipart/form-data' },
+  //       onUploadProgress: (e) => {
+  //         setPercent(Math.round((100 * e.loaded) / e.total))
+  //       },
+  //     })
+
+  //     if (isPublic) setImages((prevData) => [...res.data, ...prevData])
+  //     setMyImages((prevData) => [...res.data, ...prevData])
+
+  //     toast.success('이미지 업로드 성공!!')
+  //     setTimeout(() => {
+  //       setPercent(0)
+  //       setPreviews([])
+  //       // 동일한 이미지를 다시 올릴때 입력값의 변화가 없어서
+  //       // onChange가 발동되지 않음.
+  //       // inputRef를 사용하여 input 태그를 초기화 해줌.
+  //       inputRef.current.value = null
+  //     }, 1000)
+  //   } catch (err) {
+  //     console.log(err)
+  //     toast.error(err.response.data.message)
+  //     setPercent(0)
+  //     setPreviews([])
+  //     inputRef.current.value = null
+  //   }
+  // }
+
   const previewImages = previews.map((preview, index) => (
-    <img
-      key={index}
-      style={{ width: 200, height: 200, objectFit: 'cover' }}
-      src={preview.imgSrc}
-      alt=''
-      className={`image-preview ${preview.imgSrc && 'image-preview-show'} `}
-    />
+    <div key={index}>
+      <img
+        style={{ width: 200, height: 200, objectFit: 'cover' }}
+        src={preview.imgSrc}
+        alt=''
+        className={`image-preview ${preview.imgSrc && 'image-preview-show'} `}
+      />
+      <ProgressBar percent={percent[index]} />
+    </div>
   ))
 
   const fileName =
@@ -141,8 +165,16 @@ export default function UploadForm() {
 
   return (
     <form onSubmit={onSubmitV2}>
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>{previewImages}</div>
-      <ProgressBar percent={percent} />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-around',
+          flexWrap: 'wrap',
+        }}
+      >
+        {previewImages}
+      </div>
+
       <div className='file-dropper'>
         {fileName}
         <input
