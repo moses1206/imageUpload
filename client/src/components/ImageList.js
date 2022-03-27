@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { ImageContext } from '../context/ImageContext'
 import './ImageList.css'
+import Image from './Image'
 
 export default function ImageList() {
   const {
@@ -48,9 +49,8 @@ export default function ImageList() {
       key={image.key}
       ref={index + 4 === images.length ? elementRef : null}
     >
-      <img
-        alt=''
-        src={`https://samyang-bucket.s3.ap-northeast-2.amazonaws.com/raw/${image.key}`}
+      <Image
+        imageUrl={`https://samyang-bucket.s3.ap-northeast-2.amazonaws.com/w140/${image.key}`}
       />
     </Link>
   ))

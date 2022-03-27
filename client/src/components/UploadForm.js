@@ -14,6 +14,7 @@ export default function UploadForm() {
   const [percent, setPercent] = useState([])
   const [isPublic, setIsPublic] = useState(true)
   const inputRef = useRef()
+  const [isLoading, setIsLoading] = useState(false)
 
   const imageSelectHandler = async (e) => {
     const imageFiles = e.target.files
@@ -45,6 +46,7 @@ export default function UploadForm() {
   const onSubmitV2 = async (e) => {
     e.preventDefault()
     try {
+      setIsLoading(true)
       // preSignedUrl을 통해 이미지 파일 S3 Upload
       const presignedData = await axios.post('/images/presigned', {
         // files가 배열이 아니라서 [...files]로 배열로 변환함.
@@ -98,12 +100,14 @@ export default function UploadForm() {
         // onChange가 발동되지 않음.
         // inputRef를 사용하여 input 태그를 초기화 해줌.
         inputRef.current.value = null
-      }, 1000)
+        setIsLoading(false)
+      }, 2000)
     } catch (err) {
       console.log(err)
       toast.error(err.response.data.message)
       setPercent([])
       setPreviews([])
+      setIsLoading(false)
     }
   }
 
@@ -201,6 +205,7 @@ export default function UploadForm() {
           cursor: 'pointer',
         }}
         type='submit'
+        disabled={isLoading}
       >
         제출
       </button>
