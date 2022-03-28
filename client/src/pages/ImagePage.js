@@ -80,7 +80,7 @@ export default function ImagePage() {
       <img
         style={{ width: '100%' }}
         alt={imageId}
-        src={`https://samyang-bucket.s3.ap-northeast-2.amazonaws.com/w600/${image.key}`}
+        src={`http://d5rku6q7ww2dq.cloudfront.net/w600/${image.key}`}
       />
       <span>좋아요 {image.likes.length}</span>
       {me && image.user._id === me.userId && (

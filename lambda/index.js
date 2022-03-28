@@ -22,7 +22,7 @@ exports.handler = async (event) => {
           const newKey = `${foldername}/${KeyOnly}`
           const resizedImage = await sharp(image.Body)
             .rotate()
-            .resize(width)
+            .resize({ width, height: width, fit: 'outside' })
             .toBuffer()
 
           await s3

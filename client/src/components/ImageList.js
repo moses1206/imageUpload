@@ -50,7 +50,7 @@ export default function ImageList() {
       ref={index + 4 === images.length ? elementRef : null}
     >
       <Image
-        imageUrl={`https://samyang-bucket.s3.ap-northeast-2.amazonaws.com/w140/${image.key}`}
+        imageUrl={`http://d5rku6q7ww2dq.cloudfront.net/w140/${image.key}`}
       />
     </Link>
   ))
